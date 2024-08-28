@@ -6,6 +6,7 @@ class Player {
     this.hp = 100;
     this.atk = 10;
     this.canrun = 20;
+    this.def = 10;
   }
 
   attack(hp) {
@@ -19,18 +20,22 @@ class Player {
     return monsterhp;
   }
 
-  run() {
-    // 해당 플레이어의 canrun 확률을 돌려서 성공하면 stage++ 아니면 피격
-    // 해당 함수 메서드에 넣어야 하는지 아래 switch 문장에 넣어야 하는지
+  defence(monsteratk) {
+    // 몬스터 공격을 받아서 공격력을 방어력 만큼 깎아서 받으면 됨
+    // 만약 방어력이 상대 공격력 보다 높으면 0받게
+    if (this.def >= monsteratk) {
+      return this.hp;
+    }
+    this.hp = this.hp - (monsteratk - this.def);
 
-    return;
+    return this.hp;
   }
 }
 
 class Monster {
   constructor(stagenumber) {
-    this.hp = 10 + stagenumber * Math.floor(Math.random() * 14);;
-    this.atk = 5 + stagenumber * Math.floor(Math.random() * 9);
+    this.hp = 10 + stagenumber * Math.floor(Math.random() * 14);
+    this.atk = 5 + stagenumber * Math.floor(Math.random() * 7);
     // stagenumber에 random메서드를 달아서 배율 추가해보기(나중에)
   }
 
@@ -54,7 +59,7 @@ function displayStatus(stage, player, monster) {
   console.log(chalk.magentaBright(`\n=== Current Status ===`));
   console.log(
     chalk.cyanBright(`| Stage: ${stage} `) +
-      chalk.blueBright(`| 플레이어 정보 hp : ${player.hp} atk : ${player.atk} `) +
+      chalk.blueBright(`| 플레이어 정보 hp : ${player.hp} atk : ${player.atk} def : ${player.def}`) +
       chalk.redBright(`| 몬스터 정보 | hp : ${monster.hp} atk : ${monster.atk}`),
   );
   console.log(chalk.magentaBright(`=====================\n`));
@@ -69,7 +74,7 @@ const battle = async (stage, player, monster) => {
 
     logs.forEach((log) => console.log(log));
 
-    console.log(chalk.green(`\n1. 공격한다 2. 도망간다 (${player.canrun}%).`));
+    console.log(chalk.green(`\n1. 공격한다 2. 도망간다 (${player.canrun}%). 3. 방어한다`));
     const choice = readlineSync.question('당신의 선택은? ');
 
     // 플레이어의 선택에 따라 다음 행동 처리
@@ -86,7 +91,7 @@ const battle = async (stage, player, monster) => {
         // 타격 대상의 hp를 요소로 받아서 진행
         sleep(250);
         monster.hp = player.attack(monster.hp);
-        logs.push(chalk.green(`공격에 성공해 ${player.atk}의 데미지를 주었습니다.`));
+        logs.push(chalk.yellow(`공격에 성공해 ${player.atk}의 데미지를 주었습니다.`));
 
         player.hp = monster.attack(player.hp);
         logs.push(chalk.red(`몬스터의 반격으로 ${monster.atk}의 데미지를 받았습니다.`));
@@ -108,6 +113,14 @@ const battle = async (stage, player, monster) => {
           logs.push(chalk.red(`도주에 실패하여 ${monster.atk}의 데미지를 받았습니다.`));
         }
 
+        break;
+      case '3':
+        console.log(chalk.yellow('몬스터의 공격을 방어합니다'));
+        let imsihp = player.hp;
+        player.hp = player.defence(monster.atk);
+        sleep(250);
+        logs.push(chalk.yellow(`방어에 성공하여 ${imsihp - player.hp}만큼의 피해를 입었습니다.`));
+        sleep(250);
         break;
       default:
         logs.push(chalk.red('올바른 선택을 하세요.'));
@@ -140,9 +153,10 @@ export async function startGame() {
       // 클리어시 추가 스펙
       console.log(chalk.green('스테이지를 클리어 하셨습니다'));
       sleep(500);
-      player.hp = player.hp + 20;
-      player.atk = player.atk + 5;
+      player.hp = player.hp + 40;
+      player.atk = player.atk + 8;
       player.canrun = Math.floor(player.canrun * (0.5 + Math.random())) + 1;
+      player.def = player.def + 5
       if (player.canrun > 100) {
         player.canrun = 100;
       }
