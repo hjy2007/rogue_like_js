@@ -5,6 +5,7 @@ class Player {
   constructor() {
     this.hp = 100;
     this.atk = 10;
+    this.canrun = 20;
   }
 
   attack(hp) {
@@ -19,14 +20,17 @@ class Player {
   }
 
   run() {
-    return 0;
+    // 해당 플레이어의 canrun 확률을 돌려서 성공하면 stage++ 아니면 피격
+    // 해당 함수 메서드에 넣어야 하는지 아래 switch 문장에 넣어야 하는지
+
+    return;
   }
 }
 
 class Monster {
   constructor(stagenumber) {
-    this.hp = 10 + stagenumber * 7;
-    this.atk = 5 + stagenumber;
+    this.hp = 10 + stagenumber * Math.floor(Math.random() * 14);;
+    this.atk = 5 + stagenumber * Math.floor(Math.random() * 9);
     // stagenumber에 random메서드를 달아서 배율 추가해보기(나중에)
   }
 
@@ -39,6 +43,12 @@ class Monster {
     return playerhp;
   }
 }
+
+function sleep(ms) {
+  const start = Date.now();
+  while (Date.now() - start < ms) {}
+}
+// 출처: https://splayer.tistory.com/46 [S Player:티스토리]
 
 function displayStatus(stage, player, monster) {
   console.log(chalk.magentaBright(`\n=== Current Status ===`));
@@ -53,14 +63,13 @@ function displayStatus(stage, player, monster) {
 const battle = async (stage, player, monster) => {
   let logs = [];
 
-  // 이거 플레이어 또는 몬스터의 hp가 둘중 아무나 0보다 작아지면 반복문이 끝나야 하지 않을까?
   while (player.hp > 0 && monster.hp > 0) {
     console.clear();
     displayStatus(stage, player, monster);
 
     logs.forEach((log) => console.log(log));
 
-    console.log(chalk.green(`\n1. 공격한다 2. 도망간다.`));
+    console.log(chalk.green(`\n1. 공격한다 2. 도망간다 (${player.canrun}%).`));
     const choice = readlineSync.question('당신의 선택은? ');
 
     // 플레이어의 선택에 따라 다음 행동 처리
@@ -71,11 +80,11 @@ const battle = async (stage, player, monster) => {
     // 안되면 말고 일단 이렇게 넣어두기
     switch (choice) {
       case '1':
-        logs.push(chalk.yellow('몬스터를 공격합니다.'));
+        console.log(chalk.yellow('몬스터를 공격합니다.'));
         // 공격 함수를 통해 player와 monster의 hp수치에 변동
         // 이게 player의 attack메서드를 통해 몬스터의 hp 변동을 어떻게 줘야할 지 모르겠음
         // 타격 대상의 hp를 요소로 받아서 진행
-
+        sleep(250);
         monster.hp = player.attack(monster.hp);
         logs.push(chalk.green(`공격에 성공해 ${player.atk}의 데미지를 주었습니다.`));
 
@@ -83,12 +92,21 @@ const battle = async (stage, player, monster) => {
         logs.push(chalk.red(`몬스터의 반격으로 ${monster.atk}의 데미지를 받았습니다.`));
         break;
       case '2':
-        logs.push(chalk.yellow('도망갑니다'));
+        console.log(chalk.yellow('도주를 시도합니다'));
+        sleep(250);
         // 라운드가 넘어가는 상황
         // stage를 넘기는 방법도 있고
-        // 몬스터의 hp를 0으로 해버릴 수 있지 않을까
-        // 근데 왜 이거쓰면 플레이어 hp가 안바뀌냐? >> 이사람 또 논리연산자 실수함
-        monster.hp = monster.hp - monster.hp;
+        // 몬스터의 hp를 0으로 해버릴 수 있지 않을까 - 가장 간단한 방법
+        // 메서드만 넣어서 동작하게 하고싶음 - 메시지를 넣는데 log가 여기있어서
+        if (player.canrun >= 100 * Math.random()) {
+          console.log(chalk.yellow('도주에 성공했습니다!'));
+          sleep(250);
+          monster.hp = 0;
+        } else {
+          sleep(250);
+          player.hp = monster.attack(player.hp);
+          logs.push(chalk.red(`도주에 실패하여 ${monster.atk}의 데미지를 받았습니다.`));
+        }
 
         break;
       default:
@@ -96,7 +114,7 @@ const battle = async (stage, player, monster) => {
       // 다시 입력받는 상태로 만들기
       // 이것도 뭐가 필요한지는 별도로 생각
 
-      // 게임 종료가 되도 해당 로그를 좀 띄우고 싶은데 (hp - 수치 등)
+      // 게임 종료가 되도 해당 로그를 좀 띄우고 싶은데 (hp 수치 등)
       // settime으로 되나? 안되고
       // 왜 게임이 hp 0되면 바로 끝나지
       // = startGame() 이 게임 로그인데 해당 로그가 hp가 0이 되면 나가리라서
@@ -120,8 +138,14 @@ export async function startGame() {
     // 게임 종료 조건 플레이어 hp <= 0
     if (monster.hp <= 0 && player.hp > 0) {
       // 클리어시 추가 스펙
+      console.log(chalk.green('스테이지를 클리어 하셨습니다'));
+      sleep(500);
       player.hp = player.hp + 20;
       player.atk = player.atk + 5;
+      player.canrun = Math.floor(player.canrun * (0.5 + Math.random())) + 1;
+      if (player.canrun > 100) {
+        player.canrun = 100;
+      }
     } else if (player.hp <= 0) {
       // 이거 게임종료가 여러번 나와서 탈출 넣어야함
       break;
@@ -131,10 +155,10 @@ export async function startGame() {
   }
 
   if (stage <= 10) {
-    console.log('클리어 실패!');
+    console.log(chalk.red('사망하셨습니다. 클리어 실패!'));
   } else if (stage === 11) {
-    console.log('클리어를 축하드립니다!');
+    console.log(chalk.green('게임 클리어를 축하드립니다!'));
   } else {
-    console.log('버그?');
+    console.log(chalk.yellow('버그?'));
   }
 }
