@@ -153,8 +153,8 @@ export async function startGame() {
       // 클리어시 추가 스펙
       console.log(chalk.green('스테이지를 클리어 하셨습니다'));
       sleep(500);
-      player.hp = player.hp + 40;
-      player.atk = player.atk + 8;
+      player.hp = player.hp + 20;
+      player.atk = player.atk + 7;
       player.canrun = Math.floor(player.canrun * (0.5 + Math.random())) + 1;
       player.def = player.def + 5
       if (player.canrun > 100) {
